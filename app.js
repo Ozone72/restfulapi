@@ -37,23 +37,11 @@ const articlesSchema = new mongoose.Schema({
 const Article = mongoose.model("Article", articlesSchema);
 
 // * ROUTES *
-// Root route
-app.get('/', (req, res) => {
-  res.render("home", {
-    content: "Nothing to see here."
-  });
-});
-
 // Articles route
 app.route('/articles')
   .get(function (req, res) {
     Article.find(function (err, results) {
-      if (!err) {
-        res.send(results);
-
-      } else {
-        res.send(err);
-      }
+      res.send(!err ? results : err);
     });
   })
   .post(function (req, res) {
@@ -62,31 +50,44 @@ app.route('/articles')
       content: req.body.content
     });
     newArticle.save(function (err) {
-      if (!err) {
-        res.send("Successfully added a new article");
-      } else {
-        res.send(err);
-      }
+      res.send(!err ? "Successfully added a new article" : err);
     });
   })
   .delete(function (req, res) {
     Article.deleteMany(function (err) {
-      if (!err) {
-        res.send("Successfully deleted collection");
-      } else {
-        res.send(err);
-      }
+      res.send(!err ? "Successfully deleted collection" : err);
     });
   });
 
 app.route('/articles/:articleId')
   .get(function (req, res) {
     Article.findOne({ title: req.params.articleId }, function (err, foundArticle) {
-      if (foundArticle) {
-        res.send(foundArticle);
-      } else {
-        res.send("No article with that Title was found.");
+      res.send(foundArticle ? foundArticle : "No article with that Title was found.");
+    });
+  })
+  .put(function (req, res) {
+    Article.replaceOne(
+      { title: req.params.articleId },
+      {
+        title: req.body.title,
+        content: req.body.content
+      }, function (err) {
+        res.send(!err ? "Article has been updated" : err);
+      });
+  })
+  .patch(function (req, res) {
+    // ! Tried using some of the other Model methods, but update works best in this case because of the $set ability to pull from headers
+    Article.update(
+      { title: req.params.articleId },
+      { $set: req.body },
+      function (err) {
+        res.send(!err ? "Article has been updated" : err);
       }
+    );
+  })
+  .delete(function (req, res) {
+    Article.deleteOne({ title: req.params.articleId }, function (err) {
+      res.send(!err ? "Successfully deleted article" : err);
     });
   });
 
